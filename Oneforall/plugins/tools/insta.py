@@ -1,38 +1,67 @@
-from pyrogram import Client, filters
-import httpx
+from pyrogram import filters
+import os
+import re
+import yt_dlp
+from pyrogram.types import Message
 from Oneforall import app
 
-API_URL = "https://karma-api2.vercel.app/instadl"
+URL_PATTERN = r"(https?://[^\s]+)"
 
-@app.on_message(filters.regex(r"https?://(www\.)?instagram\.com/\S+"))
-async def insta_link_handler(client, message):
-    link = message.text
+def download_video(url: str):
     try:
-        downloading_message = await message.reply_text("Pʀᴏᴄᴇssɪɴɢ...")
+        path = "downloads"
+        os.makedirs(path, exist_ok=True)
 
-        async with httpx.AsyncClient() as http_client:  # Renamed to http_client
-            response = await http_client.get(API_URL, params={"url": link})
-            data = response.json()
+        ydl_opts = {
+            "outtmpl": f"{path}/%(title).50s.%(ext)s",
+            "format": "bestvideo+bestaudio/best",
+            "merge_output_format": "mp4",
+            "quiet": True,
+            "no_warnings": True
+        }
 
-        if "content_url" in data:
-            content_url = data["content_url"]
-            
-            bot_info = await app.get_me()  # ✅ Correct way to get bot username
-            bot_username = bot_info.username
-            
-            caption = f"Downloaded by @{bot_username}"  # ✅ Proper caption
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            file_path = ydl.prepare_filename(info)
 
-            if "video" in content_url:
-                await message.reply_video(content_url, caption=caption)
-            else:
-                await message.reply_photo(content_url, caption=caption)
-        else:
-            await message.reply_text("Unable to fetch content. Please check the Instagram URL.")
+            if not file_path.endswith(".mp4"):
+                file_path = os.path.splitext(file_path)[0] + ".mp4"
+
+        return file_path
 
     except Exception as e:
-        print(e)
-        await message.reply_text("An error occurred while processing the request.")
+        print("DOWNLOAD ERROR:", e)
+        return None
 
-    finally:
-        await downloading_message.delete()
-      
+
+@app.on_message(filters.text & filters.regex(URL_PATTERN))
+async def auto_downloader(client, message: Message):
+
+    match = re.search(URL_PATTERN, message.text)
+
+    if not match:
+        return
+
+    url = match.group(0)
+
+    status = await message.reply_text("⚡ **Downloading...**")
+
+    try:
+        file_path = download_video(url)
+
+        if not file_path or not os.path.exists(file_path):
+            return await status.edit("❌ **Download Failed**")
+
+        await status.edit("📤 **Uploading...**")
+
+        await message.reply_video(
+            video=file_path,
+            caption=f"✅ **Here is your video**\n\n🔗 {url}"
+        )
+
+        os.remove(file_path)
+
+        await status.delete()
+
+    except Exception as e:
+        await status.edit(f"❌ **Error:**\n`{e}`")
