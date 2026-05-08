@@ -2,31 +2,60 @@ import os
 import requests
 
 from pyrogram import filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup
+)
 
 from Oneforall import app
 
 
+# UPLOAD FUNCTION
 def upload_file(file_path):
 
-    server = requests.get(
-        "https://api.gofile.io/servers"
-    ).json()["data"]["servers"][0]["name"]
+    try:
 
-    with open(file_path, "rb") as f:
+        server_data = requests.get(
+            "https://api.gofile.io/servers",
+            timeout=30
+        ).json()
 
-        response = requests.post(
-            f"https://{server}.gofile.io/uploadFile",
-            files={"file": f}
+        server = (
+            server_data["data"]["servers"][0]["name"]
         )
 
-    data = response.json()
+        with open(file_path, "rb") as f:
 
-    if data["status"] == "ok":
-        return True, data["data"]["downloadPage"]
+            response = requests.post(
+                f"https://{server}.gofile.io/uploadFile",
+                files={"file": f},
+                timeout=120
+            )
 
-    return False, "Upload failed"
+        data = response.json()
 
+        # SUCCESS CHECK
+        if (
+            data.get("status") == "ok"
+            or data.get("status") == "success"
+        ):
+
+            download_link = (
+                data.get("data", {})
+                .get("downloadPage")
+            )
+
+            if download_link:
+                return True, download_link
+
+        return False, str(data)
+
+    except Exception as e:
+
+        return False, str(e)
+
+
+# COMMAND
 @app.on_message(
     filters.command(
         ["tgm", "tgt", "telegraph", "tl"]
@@ -34,6 +63,7 @@ def upload_file(file_path):
 )
 async def telegraph_upload(client, message):
 
+    # REPLY CHECK
     if not message.reply_to_message:
 
         return await message.reply_text(
@@ -42,6 +72,7 @@ async def telegraph_upload(client, message):
 
     media = message.reply_to_message
 
+    # MEDIA CHECK
     if not (
         media.photo
         or media.video
@@ -53,19 +84,23 @@ async def telegraph_upload(client, message):
             "❌ Unsupported media."
         )
 
-    text = await message.reply_text(
+    status = await message.reply_text(
         "📥 Downloading..."
     )
 
     try:
 
+        # DOWNLOAD FILE
         file_path = await media.download()
 
-        await text.edit_text(
-            "📤 Uploading to Catbox..."
+        await status.edit_text(
+            "📤 Uploading..."
         )
 
-        success, result = upload_file(file_path)
+        # UPLOAD FILE
+        success, result = upload_file(
+            file_path
+        )
 
         if success:
 
@@ -78,7 +113,7 @@ async def telegraph_upload(client, message):
                 ]]
             )
 
-            await text.edit_text(
+            await status.edit_text(
                 f"✅ Uploaded Successfully\n\n{result}",
                 reply_markup=buttons,
                 disable_web_page_preview=True
@@ -86,10 +121,11 @@ async def telegraph_upload(client, message):
 
         else:
 
-            await text.edit_text(
+            await status.edit_text(
                 f"❌ Upload Failed\n\n`{result}`"
             )
 
+        # DELETE LOCAL FILE
         try:
             os.remove(file_path)
         except:
@@ -97,9 +133,11 @@ async def telegraph_upload(client, message):
 
     except Exception as e:
 
-        await text.edit_text(
+        await status.edit_text(
             f"❌ Error:\n`{e}`"
         )
+
+
 
 __HELP__ = """
 **ᴛᴇʟᴇɢʀᴀᴘʜ ᴜᴘʟᴏᴀᴅ ʙᴏᴛ ᴄᴏᴍᴍᴀɴᴅs**
