@@ -1,7 +1,5 @@
 import asyncio
 import json
-import os
-import requests
 
 from pyrogram import filters
 from pyrogram.types import Message
@@ -44,13 +42,11 @@ async def speedtest_command(
         "⚡ Running Speed Test..."
     )
 
-    image_path = "speedtest.png"
-
     try:
 
         process = await asyncio.create_subprocess_shell(
 
-            "speedtest-cli --share --json",
+            "speedtest --format=json",
 
             stdout=asyncio.subprocess.PIPE,
 
@@ -63,7 +59,10 @@ async def speedtest_command(
 
             err = stderr.decode()
 
-            if err.strip():
+            if (
+                err.strip()
+                and "Testing from" not in err
+            ):
 
                 return await safe_edit(
                     msg,
@@ -76,43 +75,33 @@ async def speedtest_command(
 
         # SPEED
         download = round(
-            data["download"] / 1024 / 1024,
+            data["download"]["bandwidth"]
+            * 8 / 1000000,
             2
         )
 
         upload = round(
-            data["upload"] / 1024 / 1024,
+            data["upload"]["bandwidth"]
+            * 8 / 1000000,
             2
         )
 
-        ping = data["ping"]
+        ping = data["ping"]["latency"]
 
         # CLIENT
-        isp = data["client"]["isp"]
+        isp = data["isp"]
 
-        country = data["client"]["country"]
+        ip = data["interface"][
+            "externalIp"
+        ]
 
         # SERVER
         server = data["server"]["host"]
 
-        sponsor = data["server"]["sponsor"]
+        sponsor = data["server"]["name"]
 
-        # SHARE IMAGE
-        share = data.get("share")
-
-        if share:
-
-            response = requests.get(
-                share,
-                timeout=30
-            )
-
-            with open(
-                image_path,
-                "wb"
-            ) as f:
-
-                f.write(response.content)
+        # RESULT IMAGE
+        result_url = data["result"]["url"]
 
         caption = f"""
 ╭───────────────⭓
@@ -123,32 +112,18 @@ async def speedtest_command(
 │ 🏓 Ping: {ping} ms
 ├───────────────
 │ 🌍 ISP: {isp}
-│ 🇮🇳 Country: {country}
+│ 🌐 IP: {ip}
 ├───────────────
 │ 🖥 Server: {server}
 │ 🏢 Sponsor: {sponsor}
 ╰───────────────⭓
 """
 
-        if (
-            share
-            and os.path.exists(
-                image_path
-            )
-        ):
-
-            await message.reply_photo(
-                photo=image_path,
-                caption=caption
-            )
-
-            os.remove(image_path)
-
-        else:
-
-            await message.reply_text(
-                caption
-            )
+        # SEND RESULT
+        await message.reply_photo(
+            photo=result_url,
+            caption=caption
+        )
 
         try:
             await msg.delete()
@@ -161,3 +136,13 @@ async def speedtest_command(
             msg,
             f"❌ Error:\n`{e}`"
         )
+
+
+__MODULE__ = "SpeedTest"
+
+__HELP__ = """
+/speedtest
+/spt
+
+Run server speed test with image.
+"""
