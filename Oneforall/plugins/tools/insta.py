@@ -4,11 +4,28 @@ import re
 import requests
 import yt_dlp
 
-from pyrogram.types import Message
+from pyrogram.types import (
+    Message,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup
+)
+
 from Oneforall import app
 
 
-URL_PATTERN = r"(https?://(www\.)?(youtube\.com|youtu\.be|instagram\.com)/[^\s]+)"
+# URL PATTERN
+URL_PATTERN = r"(https?://[^\s]+)"
+
+
+# INSTAGRAM APIs
+INSTAGRAM_APIS = [
+
+    "https://api.agatz.xyz/api/instagram?url={url}",
+
+    "https://api.neoxr.eu/api/ig?url={url}&apikey=mcandy",
+
+    "https://api.ryzendesu.vip/api/downloader/instagram?url={url}"
+]
 
 
 # DOWNLOAD FUNCTION
@@ -25,64 +42,126 @@ def download_video(url: str):
         # INSTAGRAM
         if "instagram.com" in url:
 
-            try:
+            for api in INSTAGRAM_APIS:
 
-                api = (
-                    "https://api.agatz.xyz/api/instagram"
-                    f"?url={url}"
-                )
+                try:
 
-                response = requests.get(
-                    api,
-                    timeout=30
-                ).json()
-
-                video_url = None
-
-                if response.get("data"):
-
-                    data = response["data"]
-
-                    if isinstance(data, list):
-                        video_url = data[0].get("url")
-                    else:
-                        video_url = data.get("url")
-
-                if video_url:
-
-                    file_path = (
-                        f"{path}/instagram_video.mp4"
+                    api_url = api.format(
+                        url=url
                     )
 
-                    video = requests.get(
-                        video_url,
-                        stream=True,
-                        timeout=60
-                    )
+                    response = requests.get(
+                        api_url,
+                        timeout=30
+                    ).json()
 
-                    with open(file_path, "wb") as f:
-                        for chunk in video.iter_content(
-                            chunk_size=1024
+                    video_url = None
+
+                    # AGATZ
+                    if response.get("data"):
+
+                        data = response["data"]
+
+                        if isinstance(data, list):
+
+                            if isinstance(
+                                data[0],
+                                dict
+                            ):
+                                video_url = (
+                                    data[0].get("url")
+                                )
+                            else:
+                                video_url = data[0]
+
+                        elif isinstance(data, dict):
+
+                            video_url = (
+                                data.get("url")
+                            )
+
+                    # RESULT
+                    if (
+                        not video_url
+                        and response.get("result")
+                    ):
+
+                        result = response[
+                            "result"
+                        ]
+
+                        if isinstance(
+                            result,
+                            list
                         ):
-                            if chunk:
-                                f.write(chunk)
 
-                    return file_path
+                            if isinstance(
+                                result[0],
+                                dict
+                            ):
+                                video_url = (
+                                    result[0].get(
+                                        "url"
+                                    )
+                                )
+                            else:
+                                video_url = result[0]
 
-            except Exception as e:
-                print("INSTAGRAM API ERROR:", e)
+                        elif isinstance(
+                            result,
+                            dict
+                        ):
+
+                            video_url = (
+                                result.get("url")
+                            )
+
+                    if video_url:
+
+                        file_path = (
+                            f"{path}/instagram.mp4"
+                        )
+
+                        video = requests.get(
+                            video_url,
+                            stream=True,
+                            timeout=60
+                        )
+
+                        with open(
+                            file_path,
+                            "wb"
+                        ) as f:
+
+                            for chunk in (
+                                video.iter_content(
+                                    chunk_size=1024
+                                )
+                            ):
+
+                                if chunk:
+                                    f.write(chunk)
+
+                        return file_path
+
+                except Exception as e:
+
+                    print(
+                        "INSTAGRAM API ERROR:",
+                        e
+                    )
 
         # YOUTUBE
         ydl_opts = {
 
-            "outtmpl": f"{path}/%(title).50s.%(ext)s",
+            "outtmpl":
+                f"{path}/%(title).50s.%(ext)s",
 
-            "format": (
-                "bestvideo+bestaudio/"
-                "best"
-            ),
+            "format":
+                "bestvideo+bestaudio/best",
 
-            "merge_output_format": "mp4",
+            "merge_output_format":
+                "mp4",
 
             "quiet": True,
             "no_warnings": True,
@@ -90,9 +169,9 @@ def download_video(url: str):
             "geo_bypass": True,
 
             "http_headers": {
-                "User-Agent": (
+
+                "User-Agent":
                     "Mozilla/5.0"
-                )
             }
         }
 
@@ -105,13 +184,16 @@ def download_video(url: str):
                 download=True
             )
 
-            file_path = ydl.prepare_filename(
-                info
+            file_path = (
+                ydl.prepare_filename(
+                    info
+                )
             )
 
             if not file_path.endswith(
                 ".mp4"
             ):
+
                 file_path = (
                     os.path.splitext(
                         file_path
@@ -123,12 +205,77 @@ def download_video(url: str):
 
     except Exception as e:
 
-        print("DOWNLOAD ERROR:", e)
+        print(
+            "DOWNLOAD ERROR:",
+            e
+        )
 
         return None
 
 
-# AUTO DOWNLOADER
+# MAIN DOWNLOADER
+async def process_download(
+    message,
+    url
+):
+
+    status = await message.reply_text(
+        "⚡ **Downloading...**"
+    )
+
+    try:
+
+        file_path = download_video(
+            url
+        )
+
+        if (
+            not file_path
+            or not os.path.exists(
+                file_path
+            )
+        ):
+
+            return await status.edit(
+                "❌ Download Failed"
+            )
+
+        await status.edit(
+            "📤 Uploading..."
+        )
+
+        buttons = InlineKeyboardMarkup(
+            [[
+                InlineKeyboardButton(
+                    "🔗 Original Link",
+                    url=url
+                )
+            ]]
+        )
+
+        await message.reply_video(
+            video=file_path,
+            caption=(
+                "✅ Download Complete"
+            ),
+            reply_markup=buttons
+        )
+
+        try:
+            os.remove(file_path)
+        except:
+            pass
+
+        await status.delete()
+
+    except Exception as e:
+
+        await status.edit(
+            f"❌ Error:\n`{e}`"
+        )
+
+
+# AUTO LINK DOWNLOADER
 @app.on_message(
     filters.text &
     filters.regex(URL_PATTERN)
@@ -148,43 +295,56 @@ async def auto_downloader(
 
     url = match.group(0)
 
-    status = await message.reply_text(
-        "⚡ **Downloading...**"
+    if (
+        "instagram.com" not in url
+        and "youtube.com" not in url
+        and "youtu.be" not in url
+    ):
+        return
+
+    await process_download(
+        message,
+        url
     )
 
-    try:
 
-        file_path = download_video(url)
+# COMMANDS
+@app.on_message(
+    filters.command(
+        [
+            "instagram",
+            "ig",
+            "insta"
+        ]
+    )
+)
+async def instagram_command(
+    client,
+    message: Message
+):
 
-        if (
-            not file_path
-            or not os.path.exists(file_path)
-        ):
+    if len(message.command) < 2:
 
-            return await status.edit(
-                "❌ Download Failed"
-            )
-
-        await status.edit(
-            "📤 Uploading..."
+        return await message.reply_text(
+            "**Usage:**\n"
+            "/ig instagram_link"
         )
 
-        await message.reply_video(
-            video=file_path,
-            caption=(
-                "✅ **Download Complete**"
-            )
-        )
+    url = message.command[1]
 
-        try:
-            os.remove(file_path)
-        except:
-            pass
+    await process_download(
+        message,
+        url
+    )
 
-        await status.delete()
 
-    except Exception as e:
+__HELP__ = """
+/ig link
+/insta link
+/instagram link
 
-        await status.edit(
-            f"❌ Error:\n`{e}`"
-        )
+Auto downloads:
+Instagram + YouTube links
+"""
+
+__MODULE__ = "Downloader"
