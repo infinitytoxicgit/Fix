@@ -9,35 +9,25 @@ from Oneforall import app
 
 def upload_file(file_path):
 
-    url = "https://catbox.moe/user/api.php"
-
     with open(file_path, "rb") as f:
 
-        files = {
-            "fileToUpload": f
-        }
-
-        data = {
-            "reqtype": "fileupload"
-        }
-
         response = requests.post(
-            url,
-            data=data,
-            files=files
+            "https://catbox.moe/user/api.php",
+            data={
+                "reqtype": "fileupload"
+            },
+            files={
+                "fileToUpload": f
+            },
+            headers={
+                "User-Agent": "Mozilla/5.0"
+            }
         )
 
     if response.status_code == 200:
+        return True, response.text.strip()
 
-        text = response.text.strip()
-
-        if text.startswith("https://"):
-            return True, text
-
-        return False, text
-
-    return False, f"{response.status_code} - {response.text}"
-
+    return False, response.text
 
 @app.on_message(
     filters.command(
