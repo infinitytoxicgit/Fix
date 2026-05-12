@@ -9,7 +9,7 @@ class SoundAPI:
     def __init__(self):
         self.opts = {
             "outtmpl": "downloads/%(id)s.%(ext)s",
-            "format": "best",
+            "format": "bestaudio/best",
             "retries": 3,
             "nooverwrites": False,
             "continuedl": True,
