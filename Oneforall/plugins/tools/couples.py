@@ -14,7 +14,7 @@ from Oneforall import app as app
 POLICE = [
     [
         InlineKeyboardButton(
-            text="ϻʏ ᴄᴜᴛᴇ ᴅᴇᴠᴇʟᴏᴘᴇʀ  🥀",
+            text="ᴍʏ ᴄᴜᴛᴇ ᴅᴇᴠᴇʟᴏᴘᴇʀ  🥀",
             url=f"https://t.me/Roohi_Queen_Bot?start=_tgr_yN-6yUs4ZmRh",
         ),
     ],
@@ -105,7 +105,7 @@ async def ctest(_, message):
 
         img.save(f"test_{cid}.png")
 
-        TXT = f"""
+                TXT = f"""
 ꧁｡･ﾟ🌷 ˹Tᴏᴅᴀʏ’ꜱ Cᴜᴛᴇ Cᴏᴜᴘʟᴇ˼ 🌷ﾟ･｡꧂
 
       {N1}  ꨄ  {N2}
