@@ -121,13 +121,8 @@ if START_IMG_URL:
     START_IMG_URL = random.choice(START_IMG_URL.split(","))
 else:
     START_IMG_URL = random.choice([
-        "https://graph.org/file/2f8e61c55d311070339c8-17b572b5c7c8ad0907.jpg",
-        "https://graph.org/file/1c82daf46ac2ec57b7827-3a05aa863a378ed34a.jpg",
-
-"https://graph.org/file/2f8e61c55d311070339c8-17b572b5c7c8ad0907.jpg",
-
-"https://graph.org/file/1c82daf46ac2ec57b7827-3a05aa863a378ed34a.jpg",
-        "https://graph.org/file/2f8e61c55d311070339c8-17b572b5c7c8ad0907.jpg"
+        "https://graph.org/file/0773a4305750331f69662-a47a2290474eb4da14.jpg",
+        "https://graph.org/file/6080b9712363099cf5a31-42182dea162b84f4fb.jpg"
     ])
 
 def time_to_seconds(time):
