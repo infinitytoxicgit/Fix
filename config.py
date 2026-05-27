@@ -102,17 +102,17 @@ autoclean = []
 confirmer = {}
 
 
-PING_IMG_URL = os.getenv("PING_IMG_URL", "https://files.catbox.moe/nndfm5.jpg")
-PLAYLIST_IMG_URL = "https://graph.org/file/3a907478d7a13ff1e8ecb-606e29f797b109ab82.jpg"
-STATS_IMG_URL = "https://graph.org/file/d22cec7c75e26f36edff7-0ce8cae0037d4aa0aa.jpg"
-TELEGRAM_AUDIO_URL = "https://graph.org/file/d22cec7c75e26f36edff7-0ce8cae0037d4aa0aa.jpg"
-TELEGRAM_VIDEO_URL = "https://graph.org/file/d22cec7c75e26f36edff7-0ce8cae0037d4aa0aa.jpg"
-STREAM_IMG_URL = "https://graph.org/file/d22cec7c75e26f36edff7-0ce8cae0037d4aa0aa.jpg"
-SOUNCLOUD_IMG_URL = "https://graph.org/file/d22cec7c75e26f36edff7-0ce8cae0037d4aa0aa.jpg"
-YOUTUBE_IMG_URL = "https://graph.org/file/549cdaa7f5fc1d49159ba-8b5c466a5f0a504310.jpg"
-SPOTIFY_ARTIST_IMG_URL = "https://graph.org/file/d22cec7c75e26f36edff7-0ce8cae0037d4aa0aa.jpg"
-SPOTIFY_ALBUM_IMG_URL = "https://graph.org/file/d22cec7c75e26f36edff7-0ce8cae0037d4aa0aa.jpg"
-SPOTIFY_PLAYLIST_IMG_URL = "https://graph.org/file/d22cec7c75e26f36edff7-0ce8cae0037d4aa0aa.jpg"
+PING_IMG_URL = os.getenv("PING_IMG_URL", "https://graph.org/file/0773a4305750331f69662-a47a2290474eb4da14.jpg")
+PLAYLIST_IMG_URL = "https://graph.org/file/6080b9712363099cf5a31-42182dea162b84f4fb.jpg"
+STATS_IMG_URL = "https://graph.org/file/6080b9712363099cf5a31-42182dea162b84f4fb.jpg"
+TELEGRAM_AUDIO_URL = "https://graph.org/file/6080b9712363099cf5a31-42182dea162b84f4fb.jpg"
+TELEGRAM_VIDEO_URL = "https://graph.org/file/6080b9712363099cf5a31-42182dea162b84f4fb.jpg"
+STREAM_IMG_URL = "https://graph.org/file/6080b9712363099cf5a31-42182dea162b84f4fb.jpg"
+SOUNCLOUD_IMG_URL = "https://graph.org/file/6080b9712363099cf5a31-42182dea162b84f4fb.jpg"
+YOUTUBE_IMG_URL = "https://graph.org/file/6080b9712363099cf5a31-42182dea162b84f4fb.jpg"
+SPOTIFY_ARTIST_IMG_URL = "https://graph.org/file/6080b9712363099cf5a31-42182dea162b84f4fb.jpg"
+SPOTIFY_ALBUM_IMG_URL = "https://graph.org/file/6080b9712363099cf5a31-42182dea162b84f4fb.jpg"
+SPOTIFY_PLAYLIST_IMG_URL = "https://graph.org/file/6080b9712363099cf5a31-42182dea162b84f4fb.jpg"
 REPO_VID_URL = "https://graph.org/file/99d5b0c5b09482c09fcca-7e968971f58ab0e031.mp4" 
 
 START_IMG_URL = os.getenv("START_IMG_URL")
