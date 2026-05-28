@@ -13,6 +13,7 @@ from pytgcalls.types.stream import StreamAudioEnded
 from Oneforall.utils.inline.play import stream_markup_timer
 from Oneforall.plugins.play.autoplay import get_autoplay_recommendation
 from Oneforall.utils.database import is_autoplay_on
+from Oneforall.core.call_filter_helper import build_filter_string, create_media_stream_with_filter
 
 import config
 from Oneforall import LOGGER, YouTube, app
@@ -197,19 +198,23 @@ class Call(PyTgCalls):
         dur = int(dur)
         played, con_seconds = speed_converter(playing[0]["played"], speed)
         duration = seconds_to_min(dur)
+        
+        # Get filters for this chat
+        ffmpeg_filters = build_filter_string(chat_id, {})
+        
         stream = (
-            MediaStream(
+            create_media_stream_with_filter(
                 out,
-                audio_parameters=AudioQuality.HIGH,
-                video_parameters=VideoQuality.SD_480p,
+                video=playing[0]["streamtype"] == "video",
+                ffmpeg_filters=ffmpeg_filters,
                 ffmpeg_parameters=f"-ss {played} -to {duration}",
             )
             if playing[0]["streamtype"] == "video"
-            else MediaStream(
+            else create_media_stream_with_filter(
                 out,
-                audio_parameters=AudioQuality.HIGH,
+                video=False,
+                ffmpeg_filters=ffmpeg_filters,
                 ffmpeg_parameters=f"-ss {played} -to {duration}",
-                video_flags=MediaStream.IGNORE,
             )
         )
         if str(db[chat_id][0]["file"]) == str(file_path):
@@ -249,18 +254,15 @@ class Call(PyTgCalls):
         image: Union[bool, str] = None,
     ):
         assistant = await group_assistant(self, chat_id)
-        if video:
-            stream = MediaStream(
-                link,
-                audio_parameters=AudioQuality.HIGH,
-                video_parameters=VideoQuality.SD_480p,
-            )
-        else:
-            stream = MediaStream(
-                link,
-                audio_parameters=AudioQuality.HIGH,
-                video_flags=MediaStream.IGNORE,
-            )
+        
+        # Get filters for this chat
+        ffmpeg_filters = build_filter_string(chat_id, {})
+        
+        stream = create_media_stream_with_filter(
+            link,
+            video=bool(video),
+            ffmpeg_filters=ffmpeg_filters,
+        )
         await assistant.change_stream(
             chat_id,
             stream,
@@ -268,19 +270,16 @@ class Call(PyTgCalls):
 
     async def seek_stream(self, chat_id, file_path, to_seek, duration, mode):
         assistant = await group_assistant(self, chat_id)
+        
+        # Get filters for this chat
+        ffmpeg_filters = build_filter_string(chat_id, {})
+        
         stream = (
-            MediaStream(
+            create_media_stream_with_filter(
                 file_path,
-                audio_parameters=AudioQuality.HIGH,
-                video_parameters=VideoQuality.SD_480p,
+                video=(mode == "video"),
+                ffmpeg_filters=ffmpeg_filters,
                 ffmpeg_parameters=f"-ss {to_seek} -to {duration}",
-            )
-            if mode == "video"
-            else MediaStream(
-                file_path,
-                audio_parameters=AudioQuality.HIGH,
-                ffmpeg_parameters=f"-ss {to_seek} -to {duration}",
-                video_flags=MediaStream.IGNORE,
             )
         )
         await assistant.change_stream(chat_id, stream)
@@ -305,18 +304,15 @@ class Call(PyTgCalls):
         assistant = await group_assistant(self, chat_id)
         language = await get_lang(chat_id)
         _ = get_string(language)
-        if video:
-            stream = MediaStream(
-                link,
-                audio_parameters=AudioQuality.HIGH,
-                video_parameters=VideoQuality.SD_480p,
-            )
-        else:
-            stream = MediaStream(
-                link,
-                audio_parameters=AudioQuality.HIGH,
-                video_flags=MediaStream.IGNORE,
-            )
+        
+        # Get filters for this chat
+        ffmpeg_filters = build_filter_string(chat_id, {})
+        
+        stream = create_media_stream_with_filter(
+            link,
+            video=bool(video),
+            ffmpeg_filters=ffmpeg_filters,
+        )
         try:
             await assistant.join_group_call(
                 chat_id,
@@ -370,10 +366,13 @@ class Call(PyTgCalls):
                                 video=False,
                             )
 
-                            stream = MediaStream(
+                            # Get filters for this chat
+                            ffmpeg_filters = build_filter_string(chat_id, {})
+                            
+                            stream = create_media_stream_with_filter(
                                 file_path,
-                                audio_parameters=AudioQuality.HIGH,
-                                video_flags=MediaStream.IGNORE,
+                                video=False,
+                                ffmpeg_filters=ffmpeg_filters,
                             )
                             await client.change_stream(chat_id, stream)
                             db[chat_id] = []
@@ -398,7 +397,7 @@ class Call(PyTgCalls):
                                 run = await app.send_photo(
                                     chat_id=chat_id,
                                     photo=config.YOUTUBE_IMG_URL,
-                                    caption=f"<blockquote>🦋.𝐒ʈᴧʀʈ𝛆ɗ 𝐒ʈʀ𝛆ɑɱɩŋʛ 𝐀ᴜᴛ๏ᴘɭɑɣ ✮</blockquote>\n\n<blockquote><b>🦋.𝐓ɩttɭ𝛆 » : {title}</b></blockquote>\n<blockquote><b><u>𝐏ɭᴜɢɩŋ 𝐃𝛆ᴠ𝛆ɭ๏ᴘ𝛆ɗ 𝐅ɩη𝛆ɭɣ 𝐁ɣ <a href='https://t.me/theinfinitynetwork'>˹𝐒η๏ᴡɣ 𝐍𝛆ʈᴡ๏ʀᴋ˼</a></u></b></blockquote>\n\n",
+                                    caption=f"<blockquote>🦋.𝐒ʈᴧʀʈ𝛆ɗ 𝐒ʈʀ𝛆ɑɱɩŋʛ 𝐀ᴜᴛ๏ᴘɭɑɣ ✮</blockquote>\n\n<blockquote><b>🦋.𝐓ɩttɭ𝛆 » : {title[...]
                                     reply_markup=InlineKeyboardMarkup(button),
                                 )
 
@@ -501,6 +500,10 @@ class Call(PyTgCalls):
             db[chat_id][0]["speed_path"] = None
             db[chat_id][0]["speed"] = 1.0
         video = str(streamtype) == "video"
+        
+        # Get filters for this chat
+        ffmpeg_filters = build_filter_string(chat_id, {})
+        
         if "live_" in queued:
             n, link = await YouTube.video(videoid, True)
             if n == 0:
@@ -508,18 +511,11 @@ class Call(PyTgCalls):
                     original_chat_id,
                     text=_["call_6"],
                 )
-            if video:
-                stream = MediaStream(
-                    link,
-                    audio_parameters=AudioQuality.HIGH,
-                    video_parameters=VideoQuality.SD_480p,
-                )
-            else:
-                stream = MediaStream(
-                    link,
-                    audio_parameters=AudioQuality.HIGH,
-                    video_flags=MediaStream.IGNORE,
-                )
+            stream = create_media_stream_with_filter(
+                link,
+                video=video,
+                ffmpeg_filters=ffmpeg_filters,
+            )
             try:
                 await client.change_stream(chat_id, stream)
             except Exception:
@@ -555,18 +551,11 @@ class Call(PyTgCalls):
                 return await mystic.edit_text(
                     _["call_6"], disable_web_page_preview=True
                 )
-            if video:
-                stream = MediaStream(
-                    file_path,
-                    audio_parameters=AudioQuality.HIGH,
-                    video_parameters=VideoQuality.SD_480p,
-                )
-            else:
-                stream = MediaStream(
-                    file_path,
-                    audio_parameters=AudioQuality.HIGH,
-                    video_flags=MediaStream.IGNORE,
-                )
+            stream = create_media_stream_with_filter(
+                file_path,
+                video=video,
+                ffmpeg_filters=ffmpeg_filters,
+            )
             try:
                 await client.change_stream(chat_id, stream)
             except Exception:
@@ -591,18 +580,10 @@ class Call(PyTgCalls):
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "stream"
         elif "index_" in queued:
-            stream = (
-                MediaStream(
-                    videoid,
-                    audio_parameters=AudioQuality.HIGH,
-                    video_parameters=VideoQuality.SD_480p,
-                )
-                if str(streamtype) == "video"
-                else MediaStream(
-                    videoid,
-                    audio_parameters=AudioQuality.HIGH,
-                    video_flags=MediaStream.IGNORE,
-                )
+            stream = create_media_stream_with_filter(
+                videoid,
+                video=(str(streamtype) == "video"),
+                ffmpeg_filters=ffmpeg_filters,
             )
             try:
                 await client.change_stream(chat_id, stream)
@@ -621,18 +602,11 @@ class Call(PyTgCalls):
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
         else:
-            if video:
-                stream = MediaStream(
-                    queued,
-                    audio_parameters=AudioQuality.HIGH,
-                    video_parameters=VideoQuality.SD_480p,
-                )
-            else:
-                stream = MediaStream(
-                    queued,
-                    audio_parameters=AudioQuality.HIGH,
-                    video_flags=MediaStream.IGNORE,
-                )
+            stream = create_media_stream_with_filter(
+                queued,
+                video=video,
+                ffmpeg_filters=ffmpeg_filters,
+            )
             try:
                 await client.change_stream(chat_id, stream)
             except Exception:
