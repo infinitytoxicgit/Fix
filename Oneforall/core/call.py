@@ -163,110 +163,110 @@ class Call(PyTgCalls):
 
     async def speedup_stream(self, chat_id: int, file_path, speed, playing):
 
-      assistant = await group_assistant(self, chat_id)
+        assistant = await group_assistant(self, chat_id)
 
-      if str(speed) != "1.0":
-          base = os.path.basename(file_path)
-          chatdir = os.path.join(os.getcwd(), "playback", str(speed))
+        if str(speed) != "1.0":
+            base = os.path.basename(file_path)
+            chatdir = os.path.join(os.getcwd(), "playback", str(speed))
 
-          if not os.path.isdir(chatdir):
-             os.makedirs(chatdir)
+            if not os.path.isdir(chatdir):
+                os.makedirs(chatdir)
 
-          out = os.path.join(chatdir, base)
+            out = os.path.join(chatdir, base)
 
-          if not os.path.isfile(out):
-             vs = 2.0
-  
-             if str(speed) == "0.75":
-                 vs = 1.35
-             elif str(speed) == "1.5":
-                 vs = 0.68
-             elif str(speed) == "2.0":
-                 vs = 0.5
- 
-            # Get active filters
-             ffmpeg_filters = get_filter_string(chat_id)
+            if not os.path.isfile(out):
+                vs = 2.0
 
-            # Build audio filter chain
-             audio_filter_chain = [f"atempo={speed}"]
+                if str(speed) == "0.75":
+                    vs = 1.35
+                elif str(speed) == "1.5":
+                    vs = 0.68
+                elif str(speed) == "2.0":
+                    vs = 0.5
 
-             if ffmpeg_filters:
-                 audio_filter_chain.append(ffmpeg_filters)
+                # Get active filters
+                ffmpeg_filters = get_filter_string(chat_id)
 
-             final_audio_filters = ",".join(audio_filter_chain)
+                # Build audio filter chain
+                audio_filter_chain = [f"atempo={speed}"]
 
-             proc = await asyncio.create_subprocess_shell(
-               cmd=(
-                "ffmpeg "
-                "-y "
-                "-i "
-                f'"{file_path}" '
-                "-filter:v "
-                f'"setpts={vs}*PTS" '
-                "-filter:a "
-                f'"{final_audio_filters}" '
-                f'"{out}"'
-              ),
-              stdin=asyncio.subprocess.PIPE,
-              stderr=asyncio.subprocess.PIPE,
+                if ffmpeg_filters:
+                    audio_filter_chain.append(ffmpeg_filters)
+
+                final_audio_filters = ",".join(audio_filter_chain)
+
+                proc = await asyncio.create_subprocess_shell(
+                    cmd=(
+                        "ffmpeg "
+                        "-y "
+                        "-i "
+                        f'"{file_path}" '
+                        "-filter:v "
+                        f'"setpts={vs}*PTS" '
+                        "-filter:a "
+                        f'"{final_audio_filters}" '
+                        f'"{out}"'
+                    ),
+                    stdin=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+
+                await proc.communicate()
+
+            else:
+                out = file_path
+
+        dur = await loop.run_in_executor(None, check_duration, out)
+        dur = int(dur)
+
+        played, con_seconds = speed_converter(
+            playing[0]["played"],
+            speed
+        )
+
+        duration = seconds_to_min(dur)
+
+        # Get filters for live stream playback
+        ffmpeg_filters = get_filter_string(chat_id)
+
+        extra_params = f"-ss {played} -to {duration}"
+
+        if ffmpeg_filters:
+            extra_params += f' -af "{ffmpeg_filters}"'
+
+        stream = (
+            MediaStream(
+                out,
+                audio_parameters=AudioQuality.HIGH,
+                video_parameters=VideoQuality.SD_480p,
+                ffmpeg_parameters=extra_params,
             )
-
-            await proc.communicate()
-
-       else:
-          out = file_path
-
-       dur = await loop.run_in_executor(None, check_duration, out)
-       dur = int(dur)
-
-       played, con_seconds = speed_converter(
-          playing[0]["played"],
-          speed
-       )
-
-       duration = seconds_to_min(dur)
-
-    # Get filters for live stream playback
-       ffmpeg_filters = get_filter_string(chat_id)
-
-       extra_params = f"-ss {played} -to {duration}"
-
-       if ffmpeg_filters:
-           extra_params += f' -af "{ffmpeg_filters}"'
-
-       stream = (
-          MediaStream(
-            out,
-            audio_parameters=AudioQuality.HIGH,
-            video_parameters=VideoQuality.SD_480p,
-            ffmpeg_parameters=extra_params,
+            if playing[0]["streamtype"] == "video"
+            else MediaStream(
+                out,
+                audio_parameters=AudioQuality.HIGH,
+                ffmpeg_parameters=extra_params,
+                video_flags=MediaStream.IGNORE,
+            )
         )
-        if playing[0]["streamtype"] == "video"
-        else MediaStream(
-          out,
-          audio_parameters=AudioQuality.HIGH,
-          ffmpeg_parameters=extra_params,
-          video_flags=MediaStream.IGNORE,
-        )
-      )
 
-      if str(db[chat_id][0]["file"]) == str(file_path):
-          await assistant.change_stream(chat_id, stream)
-      else:
-        raise AssistantErr("Umm")
+        if str(db[chat_id][0]["file"]) == str(file_path):
+            await assistant.change_stream(chat_id, stream)
+        else:
+            raise AssistantErr("Umm")
 
-      if str(db[chat_id][0]["file"]) == str(file_path):
-         exis = (playing[0]).get("old_dur")
+        if str(db[chat_id][0]["file"]) == str(file_path):
+            exis = (playing[0]).get("old_dur")
 
-         if not exis:
-             db[chat_id][0]["old_dur"] = db[chat_id][0]["dur"]
-             db[chat_id][0]["old_second"] = db[chat_id][0]["seconds"]
+            if not exis:
+                db[chat_id][0]["old_dur"] = db[chat_id][0]["dur"]
+                db[chat_id][0]["old_second"] = db[chat_id][0]["seconds"]
 
-         db[chat_id][0]["played"] = con_seconds
-         db[chat_id][0]["dur"] = duration
-         db[chat_id][0]["seconds"] = dur
-         db[chat_id][0]["speed_path"] = out
-         db[chat_id][0]["speed"] = speed
+            db[chat_id][0]["played"] = con_seconds
+            db[chat_id][0]["dur"] = duration
+            db[chat_id][0]["seconds"] = dur
+            db[chat_id][0]["speed_path"] = out
+            db[chat_id][0]["speed"] = speed
 
     async def force_stop_stream(self, chat_id: int):
         assistant = await group_assistant(self, chat_id)

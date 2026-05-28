@@ -8,7 +8,6 @@ from pyrogram.types import InlineKeyboardMarkup
 
 import config
 from Oneforall import app
-from Oneforall.core.call import Hotty
 from Oneforall.misc import db
 from Oneforall.utils.database import get_lang
 from Oneforall.utils.inline.play import (
