@@ -184,8 +184,8 @@ async def superban_request(client, message: Message, _):
     )
 
 
-@app.on_callback_query(filters.regex(r"^sb_accept_"))
-async def accept_superban(client, callback: CallbackQuery):
+@app.on_callback_query(filters.regex(r"^sb_decline_(.+)$"))
+async def decline_superban(client, callback: CallbackQuery):
     """Accept superban request - SUPERBAN TEAM ONLY"""
     # Check if user is in superban team
     is_member = await is_superban_team_member(callback.from_user.id)
