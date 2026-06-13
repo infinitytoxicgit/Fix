@@ -122,7 +122,7 @@ async def superban_request(client, message: Message, _):
     reason = " ".join(message.command[2:]) if len(message.command) > 2 else "ɴᴏ ʀᴇᴀsᴏɴ ᴘʀᴏᴠɪᴅᴇᴅ"
     
     # Create request ID
-    request_id = uuid4().hex[:12]"
+    request_id = uuid4().hex[:12]
     
     # Store request in database
     request_data = {
@@ -289,7 +289,7 @@ async def accept_superban(client, callback: CallbackQuery):
     )
 
 
-@app.on_callback_query(filters.regex(r"^sb_decline_"))
+@app.on_callback_query(filters.regex(r"^sb_accept_(.+)$"))
 async def decline_superban(client, callback: CallbackQuery):
     """Decline superban request - SUPERBAN TEAM ONLY"""
     # Check if user is in superban team
