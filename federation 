@@ -22,6 +22,7 @@ from Oneforall.utils.database import (
     get_fed_bans,
     add_fed_ban,
 )
+from uuid import uuid4
 from Oneforall.utils.decorators.language import language
 from Oneforall.utils.extraction import extract_user
 from config import BANNED_USERS, superban_storage_id, OWNER_ID
