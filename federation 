@@ -188,7 +188,12 @@ async def superban_request(client, message: Message, _):
 async def decline_superban(client, callback: CallbackQuery):
     """Accept superban request - SUPERBAN TEAM ONLY"""
     # Check if user is in superban team
-    is_member = await is_superban_team_member(callback.from_user.id)
+    owners = OWNER_ID if isinstance(OWNER_ID, list) else [OWNER_ID]
+
+is_member = (
+    callback.from_user.id in owners
+    or await is_superban_team_member(callback.from_user.id)
+)
     if not is_member:
         return await callback.answer("❌ ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ɪɴ sᴜᴘᴇʀʙᴀɴ ᴛᴇᴀᴍ!", show_alert=True)
     
@@ -289,11 +294,16 @@ async def decline_superban(client, callback: CallbackQuery):
     )
 
 
-@app.on_callback_query(filters.regex(r"^sb_accept_(.+)$"))
+@app.on_callback_query(filters.regex(r"^sb_decline_(.+)$"))
 async def decline_superban(client, callback: CallbackQuery):
     """Decline superban request - SUPERBAN TEAM ONLY"""
     # Check if user is in superban team
-    is_member = await is_superban_team_member(callback.from_user.id)
+    owners = OWNER_ID if isinstance(OWNER_ID, list) else [OWNER_ID]
+
+is_member = (
+    callback.from_user.id in owners
+    or await is_superban_team_member(callback.from_user.id)
+)
     if not is_member:
         return await callback.answer("❌ ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ɪɴ sᴜᴘᴇʀʙᴀɴ ᴛᴇᴀᴍ!", show_alert=True)
     
